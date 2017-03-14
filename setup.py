@@ -44,7 +44,7 @@ entry_points = {
 }
 
 setup(name='openprocurement.api',
-      version='2.3.18+ds.2',
+      version='2.3.18-sale',
       description='openprocurement.api',
       long_description=README,
       classifiers=[
@@ -58,7 +58,7 @@ setup(name='openprocurement.api',
       author='Quintagroup, Ltd.',
       author_email='info@quintagroup.com',
       license='Apache License 2.0',
-      url='https://github.com/openprocurement/openprocurement.api',
+      url='https://github.com/prozorro-sale/openprocurement.api',
       package_dir={'': 'src'},
       py_modules=['cgi'],
       packages=find_packages('src'),
