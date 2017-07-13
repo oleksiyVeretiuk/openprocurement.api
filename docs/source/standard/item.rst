@@ -55,11 +55,6 @@ Schema
     |ocdsDescription|
     The number of units required
 
-:deliveryDate:
-    :ref:`Period`
-
-    Period during which the item should be delivered.
-
 :deliveryAddress:
     :ref:`Address`
 
