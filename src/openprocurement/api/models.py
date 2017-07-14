@@ -342,7 +342,6 @@ class Item(Model):
     additionalClassifications = ListType(ModelType(Classification), default=list(), required=True, min_size=1, validators=[validate_dkpp])
     unit = ModelType(Unit)  # Description of the unit which the good comes in e.g. hours, kilograms
     quantity = IntType()  # The number of units required
-    deliveryDate = ModelType(Period)
     deliveryAddress = ModelType(Address)
     deliveryLocation = ModelType(Location)
     relatedLot = MD5Type()

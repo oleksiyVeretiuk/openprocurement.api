@@ -261,9 +261,6 @@ class TendersResource(APIResource):
                     "awardPeriod": {
                         "endDate": "2014-11-13T00:00:00"
                     },
-                    "deliveryDate": {
-                        "endDate": "2014-11-20T00:00:00"
-                    },
                     "minimalStep": {
                         "amount": 35,
                         "currency": "UAH"
@@ -332,9 +329,6 @@ class TendersResource(APIResource):
                     },
                     "awardPeriod": {
                         "endDate": "2014-11-13T00:00:00"
-                    },
-                    "deliveryDate": {
-                        "endDate": "2014-11-20T00:00:00"
                     },
                     "minimalStep": {
                         "amount": 35,
@@ -450,9 +444,6 @@ class TenderResource(APIResource):
                     },
                     "awardPeriod": {
                         "endDate": "2014-11-13T00:00:00"
-                    },
-                    "deliveryDate": {
-                        "endDate": "2014-11-20T00:00:00"
                     },
                     "minimalStep": {
                         "amount": 35,
