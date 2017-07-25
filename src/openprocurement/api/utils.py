@@ -910,7 +910,7 @@ def calculate_business_date(date_obj, timedelta_obj, context=None, working_days=
 
 
 def json_body(self):
-    return json.loads(text_(self.body, self.charset), parse_float=decimal.Decimal)
+    return simplejson.loads(text_(self.body, self.charset), parse_float=decimal.Decimal)
 
 
 def couchdb_json_decode():
