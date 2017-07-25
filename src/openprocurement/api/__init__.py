@@ -5,6 +5,7 @@ if 'test' not in __import__('sys').argv[0]:
     import gevent.monkey
     gevent.monkey.patch_all()
 import os
+import simplejson
 from base64 import b64decode, b64encode
 from couchdb import Server as CouchdbServer, Session
 from couchdb.http import Unauthorized, extract_credentials
@@ -14,7 +15,7 @@ from openprocurement.api.auth import AuthenticationPolicy, authenticated_role, c
 from openprocurement.api.design import sync_design
 from openprocurement.api.migration import migrate_data
 from openprocurement.api.models import Tender
-from openprocurement.api.utils import forbidden, add_logging_context, set_logging_context, extract_tender, request_params, isTender, set_renderer, beforerender, register_tender_procurementMethodType, tender_from_data, route_prefix
+from openprocurement.api.utils import couchdb_json_decode, json_body, forbidden, add_logging_context, set_logging_context, extract_tender, request_params, isTender, set_renderer, beforerender, register_tender_procurementMethodType, tender_from_data, route_prefix
 from pbkdf2 import PBKDF2
 from pkg_resources import iter_entry_points
 from pyramid.authorization import ACLAuthorizationPolicy as AuthorizationPolicy
@@ -71,9 +72,11 @@ def main(global_config, **settings):
     config.add_request_method(authenticated_role, reify=True)
     config.add_request_method(extract_tender, 'tender', reify=True)
     config.add_request_method(check_accreditation)
-    config.add_renderer('prettyjson', JSON(indent=4))
-    config.add_renderer('jsonp', JSONP(param_name='opt_jsonp'))
-    config.add_renderer('prettyjsonp', JSONP(indent=4, param_name='opt_jsonp'))
+    config.add_request_method(json_body, 'json_body', reify=True)
+    config.add_renderer('json', JSON(serializer=simplejson.dumps))
+    config.add_renderer('prettyjson', JSON(indent=4, serializer=simplejson.dumps))
+    config.add_renderer('jsonp', JSONP(param_name='opt_jsonp', serializer=simplejson.dumps))
+    config.add_renderer('prettyjsonp', JSONP(indent=4, param_name='opt_jsonp', serializer=simplejson.dumps))
     config.add_subscriber(add_logging_context, NewRequest)
     config.add_subscriber(set_logging_context, ContextFound)
     config.add_subscriber(set_renderer, NewRequest)
@@ -157,6 +160,8 @@ def main(global_config, **settings):
         # sync couchdb views
         sync_design(db)
     config.registry.db = db
+    # readjust couchdb json decoder
+    couchdb_json_decode()
 
     # Document Service key
     config.registry.docservice_url = settings.get('docservice_url')

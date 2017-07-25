@@ -178,7 +178,7 @@ Sample below indicates incomplete request.
       {
         "location": "body",
         "name": "data",
-        "description": "No JSON object could be decoded"
+        "description": "Expecting value: line 1 column 1 (char 0)"
       }
     ]
   }

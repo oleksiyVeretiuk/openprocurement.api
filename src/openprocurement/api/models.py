@@ -2,13 +2,14 @@
 import os
 from couchdb_schematics.document import SchematicsDocument
 from datetime import datetime, timedelta, time
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from schematics.types import StringType, URLType, IntType, BooleanType, BaseType, EmailType, MD5Type, FloatType, DecimalType as BaseDecimalType
 from iso8601 import parse_date, ParseError
 from pytz import timezone
 from pyramid.security import Allow
 from schematics.exceptions import ConversionError, ValidationError
 from schematics.models import Model as SchematicsModel
 from schematics.transforms import whitelist, blacklist, export_loop, convert
-from schematics.types import StringType, FloatType, IntType, URLType, BooleanType, BaseType, EmailType, MD5Type
 from schematics.types.compound import ModelType, DictType, ListType as BaseListType
 from schematics.types.serializable import serializable
 from uuid import uuid4
@@ -54,6 +55,24 @@ WORKING_DAYS = read_json('working_days.json')
 
 class ITender(Interface):
     """ Base tender marker interface """
+
+
+class DecimalType(BaseDecimalType):
+
+    def __init__(self, precision=-3, min_value=None, max_value=None, **kwargs):
+        self.min_value, self.max_value = min_value, max_value
+        self.precision = Decimal("1E{:d}".format(precision))
+        super(DecimalType, self).__init__(**kwargs)
+
+    def to_primitive(self, value, context=None):
+        return value
+
+    def to_native(self, value, context=None):
+        try:
+            value = Decimal(value).quantize(self.precision, rounding=ROUND_HALF_UP).normalize()
+        except (TypeError, InvalidOperation):
+            raise ConversionError(self.messages['number_coerce'].format(value))
+        return value
 
 
 class IsoDateTimeType(BaseType):
@@ -341,7 +360,7 @@ class Item(Model):
     classification = ModelType(CPVClassification, required=True)
     additionalClassifications = ListType(ModelType(Classification), default=list(), required=True, min_size=1, validators=[validate_dkpp])
     unit = ModelType(Unit)  # Description of the unit which the good comes in e.g. hours, kilograms
-    quantity = IntType()  # The number of units required
+    quantity = DecimalType()  # The number of units required
     deliveryAddress = ModelType(Address)
     deliveryLocation = ModelType(Location)
     relatedLot = MD5Type()
