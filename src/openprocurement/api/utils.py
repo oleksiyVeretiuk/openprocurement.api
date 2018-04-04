@@ -114,16 +114,16 @@ def upload_file(request, blacklisted_fields=DOCUMENT_BLACKLISTED_FIELDS):
                 set(['Signature', 'KeyID']) != set(parsed_query):
             request.errors.add('body', 'url', "Can add document only from document service.")
             request.errors.status = 403
-            raise error_handler(request.errors)
+            raise error_handler(request)
         if not document.hash:
             request.errors.add('body', 'hash', "This field is required.")
             request.errors.status = 422
-            raise error_handler(request.errors)
+            raise error_handler(request)
         keyid = parsed_query['KeyID']
         if keyid not in request.registry.keyring:
             request.errors.add('body', 'url', "Document url expired.")
             request.errors.status = 422
-            raise error_handler(request.errors)
+            raise error_handler(request)
         dockey = request.registry.keyring[keyid]
         signature = parsed_query['Signature']
         key = urlparse(url).path.split('/')[-1]
@@ -132,7 +132,7 @@ def upload_file(request, blacklisted_fields=DOCUMENT_BLACKLISTED_FIELDS):
         except TypeError:
             request.errors.add('body', 'url', "Document url signature invalid.")
             request.errors.status = 422
-            raise error_handler(request.errors)
+            raise error_handler(request)
         mess = "{}\0{}".format(key, document.hash.split(':', 1)[-1])
         try:
             if mess != dockey.verify(signature + mess.encode("utf-8")):
@@ -140,7 +140,7 @@ def upload_file(request, blacklisted_fields=DOCUMENT_BLACKLISTED_FIELDS):
         except ValueError:
             request.errors.add('body', 'url', "Document url invalid.")
             request.errors.status = 422
-            raise error_handler(request.errors)
+            raise error_handler(request)
         if first_document:
             for attr_name in type(first_document)._fields:
                 if attr_name not in blacklisted_fields:
@@ -200,7 +200,7 @@ def upload_file(request, blacklisted_fields=DOCUMENT_BLACKLISTED_FIELDS):
         else:
             request.errors.add('body', 'data', "Can't upload document to document service.")
             request.errors.status = 422
-            raise error_handler(request.errors)
+            raise error_handler(request)
         document.hash = doc_hash
         key = urlparse(doc_url).path.split('/')[-1]
     else:
@@ -656,32 +656,33 @@ def request_params(request):
     except UnicodeDecodeError:
         request.errors.add('body', 'data', 'could not decode params')
         request.errors.status = 422
-        raise error_handler(request.errors, False)
+        raise error_handler(request, False)
     except Exception, e:
         request.errors.add('body', str(e.__class__.__name__), str(e))
         request.errors.status = 422
-        raise error_handler(request.errors, False)
+        raise error_handler(request, False)
     return params
 
 
-def error_handler(errors, request_params=True):
+def error_handler(request, request_params=True):
+    errors = request.errors
     params = {
         'ERROR_STATUS': errors.status
     }
     if request_params:
-        params['ROLE'] = str(errors.request.authenticated_role)
-        if errors.request.params:
-            params['PARAMS'] = str(dict(errors.request.params))
-    if errors.request.matchdict:
-        for x, j in errors.request.matchdict.items():
+        params['ROLE'] = str(request.authenticated_role)
+        if request.params:
+            params['PARAMS'] = str(dict(request.params))
+    if request.matchdict:
+        for x, j in request.matchdict.items():
             params[x.upper()] = j
-    if 'tender' in errors.request.validated:
-        params['TENDER_REV'] = errors.request.validated['tender'].rev
-        params['TENDERID'] = errors.request.validated['tender'].tenderID
-        params['TENDER_STATUS'] = errors.request.validated['tender'].status
+    if 'tender' in request.validated:
+        params['TENDER_REV'] = request.validated['tender'].rev
+        params['TENDERID'] = request.validated['tender'].tenderID
+        params['TENDER_STATUS'] = request.validated['tender'].status
     LOGGER.info('Error on processing request "{}"'.format(dumps(errors, indent=4)),
-                extra=context_unpack(errors.request, {'MESSAGE_ID': 'error_handler'}, params))
-    return json_error(errors)
+                extra=context_unpack(request, {'MESSAGE_ID': 'error_handler'}, params))
+    return json_error(request)
 
 
 opresource = partial(resource, error_handler=error_handler, factory=factory)
@@ -700,7 +701,7 @@ class APIResource(object):
 def forbidden(request):
     request.errors.add('url', 'permission', 'Forbidden')
     request.errors.status = 403
-    return error_handler(request.errors)
+    return error_handler(request)
 
 
 def add_logging_context(event):
@@ -764,7 +765,7 @@ def extract_tender_adapter(request, tender_id):
     if doc is None or doc.get('doc_type') != 'Tender':
         request.errors.add('url', 'tender_id', 'Not Found')
         request.errors.status = 404
-        raise error_handler(request.errors)
+        raise error_handler(request)
 
     return request.tender_from_data(doc)
 
@@ -860,9 +861,9 @@ def tender_from_data(request, data, raise_error=True, create=True):
     procurementMethodType = data.get('procurementMethodType', 'belowThreshold')
     model = request.registry.tender_procurementMethodTypes.get(procurementMethodType)
     if model is None and raise_error:
-        request.errors.add('data', 'procurementMethodType', 'Not implemented')
+        request.errors.add('body', 'data', 'procurementMethodType is not implemented')
         request.errors.status = 415
-        raise error_handler(request.errors)
+        raise error_handler(request)
     update_logging_context(request, {'tender_type': procurementMethodType})
     if model is not None and create:
         model = model(data)

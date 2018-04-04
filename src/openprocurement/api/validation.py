@@ -4,7 +4,7 @@ from schematics.exceptions import ModelValidationError, ModelConversionError
 from openprocurement.api.utils import apply_data_patch, update_logging_context
 
 
-def validate_json_data(request):
+def validate_json_data(request, **kwargs):
     try:
         json = request.json_body
     except ValueError, e:
@@ -64,7 +64,7 @@ def validate_data(request, model, partial=False, data=None):
     return data
 
 
-def validate_tender_data(request):
+def validate_tender_data(request, **kwargs):
     update_logging_context(request, {'tender_id': '__new__'})
 
     data = validate_json_data(request)
@@ -73,23 +73,23 @@ def validate_tender_data(request):
 
     model = request.tender_from_data(data, create=False)
     if not request.check_accreditation(model.create_accreditation):
-        request.errors.add('procurementMethodType', 'accreditation', 'Broker Accreditation level does not permit tender creation')
+        request.errors.add('body', 'accreditation', 'Broker Accreditation level does not permit tender creation')
         request.errors.status = 403
         return
     data = validate_data(request, model, data=data)
     if data and data.get('mode', None) is None and request.check_accreditation('t'):
-        request.errors.add('procurementMethodType', 'mode', 'Broker Accreditation level does not permit tender creation')
+        request.errors.add('body', 'mode', 'Broker Accreditation level does not permit tender creation')
         request.errors.status = 403
         return
     if data and data.get('procuringEntity', {}).get('kind', '') not in model.procuring_entity_kinds:
-        request.errors.add('procuringEntity',
+        request.errors.add('body',
                            'kind',
                            '{kind!r} procuringEntity cannot publish this type of procedure. '
                            'Only {kinds} are allowed.'.format(kind=data.get('procuringEntity', {}).get('kind', ''), kinds=', '.join(model.procuring_entity_kinds)))
         request.errors.status = 403
 
 
-def validate_patch_tender_data(request):
+def validate_patch_tender_data(request, **kwargs):
     data = validate_json_data(request)
     if data is None:
         return
@@ -104,7 +104,7 @@ def validate_patch_tender_data(request):
     request.context.status = default_status
 
 
-def validate_tender_auction_data(request):
+def validate_tender_auction_data(request, **kwargs):
     data = validate_patch_tender_data(request)
     tender = request.validated['tender']
     if tender.status != 'active.auction':
@@ -172,13 +172,13 @@ def validate_tender_auction_data(request):
     request.validated['data'] = data
 
 
-def validate_bid_data(request):
+def validate_bid_data(request, **kwargs):
     if not request.check_accreditation(request.tender.edit_accreditation):
-        request.errors.add('procurementMethodType', 'accreditation', 'Broker Accreditation level does not permit bid creation')
+        request.errors.add('body', 'accreditation', 'Broker Accreditation level does not permit bid creation')
         request.errors.status = 403
         return
     if request.tender.get('mode', None) is None and request.check_accreditation('t'):
-        request.errors.add('procurementMethodType', 'mode', 'Broker Accreditation level does not permit bid creation')
+        request.errors.add('body', 'mode', 'Broker Accreditation level does not permit bid creation')
         request.errors.status = 403
         return
     update_logging_context(request, {'bid_id': '__new__'})
@@ -186,34 +186,34 @@ def validate_bid_data(request):
     return validate_data(request, model)
 
 
-def validate_patch_bid_data(request):
+def validate_patch_bid_data(request, **kwargs):
     model = type(request.tender).bids.model_class
     return validate_data(request, model, True)
 
 
-def validate_award_data(request):
+def validate_award_data(request, **kwargs):
     update_logging_context(request, {'award_id': '__new__'})
     model = type(request.tender).awards.model_class
     return validate_data(request, model)
 
 
-def validate_patch_award_data(request):
+def validate_patch_award_data(request, **kwargs):
     model = type(request.tender).awards.model_class
     return validate_data(request, model, True)
 
 
-def validate_patch_document_data(request):
+def validate_patch_document_data(request, **kwargs):
     model = type(request.context)
     return validate_data(request, model, True)
 
 
-def validate_question_data(request):
+def validate_question_data(request, **kwargs):
     if not request.check_accreditation(request.tender.edit_accreditation):
-        request.errors.add('procurementMethodType', 'accreditation', 'Broker Accreditation level does not permit question creation')
+        request.errors.add('body', 'accreditation', 'Broker Accreditation level does not permit question creation')
         request.errors.status = 403
         return
     if request.tender.get('mode', None) is None and request.check_accreditation('t'):
-        request.errors.add('procurementMethodType', 'mode', 'Broker Accreditation level does not permit question creation')
+        request.errors.add('body', 'mode', 'Broker Accreditation level does not permit question creation')
         request.errors.status = 403
         return
     update_logging_context(request, {'question_id': '__new__'})
@@ -221,18 +221,18 @@ def validate_question_data(request):
     return validate_data(request, model)
 
 
-def validate_patch_question_data(request):
+def validate_patch_question_data(request, **kwargs):
     model = type(request.tender).questions.model_class
     return validate_data(request, model, True)
 
 
-def validate_complaint_data(request):
+def validate_complaint_data(request, **kwargs):
     if not request.check_accreditation(request.tender.edit_accreditation):
-        request.errors.add('procurementMethodType', 'accreditation', 'Broker Accreditation level does not permit complaint creation')
+        request.errors.add('body', 'accreditation', 'Broker Accreditation level does not permit complaint creation')
         request.errors.status = 403
         return
     if request.tender.get('mode', None) is None and request.check_accreditation('t'):
-        request.errors.add('procurementMethodType', 'mode', 'Broker Accreditation level does not permit complaint creation')
+        request.errors.add('body', 'mode', 'Broker Accreditation level does not permit complaint creation')
         request.errors.status = 403
         return
     update_logging_context(request, {'complaint_id': '__new__'})
@@ -240,51 +240,51 @@ def validate_complaint_data(request):
     return validate_data(request, model)
 
 
-def validate_patch_complaint_data(request):
+def validate_patch_complaint_data(request, **kwargs):
     model = type(request.tender).complaints.model_class
     return validate_data(request, model, True)
 
 
-def validate_cancellation_data(request):
+def validate_cancellation_data(request, **kwargs):
     update_logging_context(request, {'cancellation_id': '__new__'})
     model = type(request.tender).cancellations.model_class
     return validate_data(request, model)
 
 
-def validate_patch_cancellation_data(request):
+def validate_patch_cancellation_data(request, **kwargs):
     model = type(request.tender).cancellations.model_class
     return validate_data(request, model, True)
 
 
-def validate_contract_data(request):
+def validate_contract_data(request, **kwargs):
     update_logging_context(request, {'contract_id': '__new__'})
     model = type(request.tender).contracts.model_class
     return validate_data(request, model)
 
 
-def validate_patch_contract_data(request):
+def validate_patch_contract_data(request, **kwargs):
     model = type(request.tender).contracts.model_class
     return validate_data(request, model, True)
 
 
-def validate_lot_data(request):
+def validate_lot_data(request, **kwargs):
     update_logging_context(request, {'lot_id': '__new__'})
     model = type(request.tender).lots.model_class
     return validate_data(request, model)
 
 
-def validate_patch_lot_data(request):
+def validate_patch_lot_data(request, **kwargs):
     model = type(request.tender).lots.model_class
     return validate_data(request, model, True)
 
 
-def validate_document_data(request):
+def validate_document_data(request, **kwargs):
     context = request.context if 'documents' in request.context else request.context.__parent__
     model = type(context).documents.model_class
     return validate_data(request, model)
 
 
-def validate_file_upload(request):
+def validate_file_upload(request, **kwargs):
     update_logging_context(request, {'document_id': '__new__'})
     if request.registry.docservice_url and request.content_type == "application/json":
         return validate_document_data(request)
@@ -295,7 +295,7 @@ def validate_file_upload(request):
         request.validated['file'] = request.POST['file']
 
 
-def validate_file_update(request):
+def validate_file_update(request, **kwargs):
     if request.registry.docservice_url and request.content_type == "application/json":
         return validate_document_data(request)
     if request.content_type == 'multipart/form-data':
